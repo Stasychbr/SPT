@@ -12,4 +12,3 @@ public:
     void setArc(uint head, uint tail, uint weight);
     void print(FILE* file = stdout);
 };
-

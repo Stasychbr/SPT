@@ -8,7 +8,12 @@ int main(int argc, char* argv[]) {
     }
     try {
         Graph* graph = GraphParser::parseFile(argv[1]);
-        graph->print();
+        FILE* output;
+        fopen_s(&output, "output.txt", "w");
+        if (output) {
+            graph->print(output);
+            fclose(output);
+        }
         delete graph;
     }
     catch (const char* msg) {

@@ -1,7 +1,6 @@
 #include "GraphParser.h"
 #include <fstream>
 #include <cstdlib>
-using namespace std;
 
 Graph* GraphParser::parseFile(const char* filePath) {
     ifstream file(filePath);
