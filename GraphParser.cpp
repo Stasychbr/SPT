@@ -27,16 +27,24 @@ Graph* GraphParser::parseFile(const char* filePath) {
         delete[] line;
         throw "Wrong file format";
     }
-    Graph* graph = new Graph(nodes);
-    if (!graph) {
-        delete[] line;
-        throw "Not enough heap memory";
-    }
     file.getline(line, bufSize);
+    file.getline(line, bufSize);
+    bool directed = false;
+    if (line[0] == 'E') {
+        directed = false;
+    }
+    else if (line[0] == 'A') {
+        directed = true;
+    }
+    else {
+        delete[] line;
+        throw "Wrong file format";
+    }
+    Graph* graph = new Graph(nodes, directed);
     uint head, tail, weight;
     while (strcmp(line, "END")) {
         sscanf_s(line, "%*c %i %i %i", &tail, &head, &weight);
-        graph->setArc(head - 1, tail - 1, weight);
+        graph->setEdge(head - 1, tail - 1, weight);
         if (!file.good()) {
             delete graph;
             delete[] line;
