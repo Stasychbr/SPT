@@ -12,6 +12,12 @@ int main(int argc, char* argv[]) {
         fopen_s(&output, "output.txt", "w");
         if (output) {
             graph->print(output);
+            graph->buildSPT(0);
+            vector<uint> test = graph->getDistances();
+            for (int i = 0; i < test.size(); i++) {
+                printf("to %i: %i\n", i + 1, test[i]);
+            }
+            graph->getSPT()->print();
             fclose(output);
         }
         delete graph;
