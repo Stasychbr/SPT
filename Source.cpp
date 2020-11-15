@@ -15,9 +15,14 @@ int main(int argc, char* argv[]) {
             graph->buildSPT(0);
             vector<uint>& test = graph->getDistances();
             for (int i = 0; i < test.size(); i++) {
-                printf("to %i: %i\n", i + 1, test[i]);
+                cout << "to " << i + 1 << ": " << test[i] << endl;
             }
-            graph->getSPT()->print(output);
+            graph->getSPT()->print();
+            auto& terminals = graph->getTerminals();
+            cout << "Terminals " << terminals.size() << endl;
+            for (auto it = terminals.begin(); it != terminals.end(); it++) {
+                cout << "T " << *it + 1 << endl;
+            }
         }
         delete graph;
     }

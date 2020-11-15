@@ -12,6 +12,10 @@ Graph::Graph(uint size, bool directed) {
     _directed = directed;
 }
 
+bool Graph::isDirected() {
+    return _directed;
+}
+
 void Graph::setEdge(uint head, uint tail, uint weight) {
     if (head < _size && tail < _size) {
         _graph[head][tail] = weight;
@@ -19,6 +23,24 @@ void Graph::setEdge(uint head, uint tail, uint weight) {
             _graph[tail][head] = weight;
         }
     }
+}
+
+void Graph::setTerminal(uint terminal) {
+    if (terminal < _size) {
+        _terminals.insert(terminal);
+    }
+}
+
+void Graph::removeTerminal(uint terminal) {
+    _terminals.erase(terminal);
+}
+
+void Graph::setTermsNumber(uint number) {
+    _terminals.reserve(number);
+}
+
+void Graph::setRoot(uint root) {
+    _root = root;
 }
 
 void Graph::removeEdge(uint head, uint tail) {
@@ -87,6 +109,10 @@ Graph* Graph::getSPT() {
 
 vector<uint>& Graph::getDistances() {
     return _distance;
+}
+
+unordered_set<uint>& Graph::getTerminals() {
+    return _terminals;
 }
 
 Graph::~Graph() {
