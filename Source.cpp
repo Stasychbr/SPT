@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include "GraphParser.h"
 
 int main(int argc, char* argv[]) {
@@ -8,17 +9,15 @@ int main(int argc, char* argv[]) {
     }
     try {
         Graph* graph = GraphParser::parseFile(argv[1]);
-        FILE* output;
-        fopen_s(&output, "output.txt", "w");
-        if (output) {
+        ofstream output("output.txt");
+        if (output.good()) {
             graph->print(output);
             graph->buildSPT(0);
-            vector<uint> test = graph->getDistances();
+            vector<uint>& test = graph->getDistances();
             for (int i = 0; i < test.size(); i++) {
                 printf("to %i: %i\n", i + 1, test[i]);
             }
-            graph->getSPT()->print();
-            fclose(output);
+            graph->getSPT()->print(output);
         }
         delete graph;
     }

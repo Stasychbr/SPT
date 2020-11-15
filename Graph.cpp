@@ -4,7 +4,7 @@
 #include <functional>
 
 Graph::Graph(uint size, bool directed) {
-    _graph = new vector<pair<uint, uint>>[size];
+    _graph = new unordered_map<uint, uint>[size];
     if (!_graph) {
         throw "Not enough heap memory";
     }
@@ -14,41 +14,31 @@ Graph::Graph(uint size, bool directed) {
 
 void Graph::setEdge(uint head, uint tail, uint weight) {
     if (head < _size && tail < _size) {
-        _graph[head].emplace_back(make_pair(tail, weight));
+        _graph[head][tail] = weight;
         if (!_directed) {
-            _graph[tail].emplace_back(make_pair(head, weight));
+            _graph[tail][head] = weight;
         }
     }
 }
 
 void Graph::removeEdge(uint head, uint tail) {
     if (head < _size && tail < _size) {
-        for (auto it = _graph[head].begin(); it != _graph[head].end(); it++) {
-            if ((*it).first == tail) {
-                _graph[head].erase(it); 
-                break;
-            }
-        }
+        _graph[head].erase(tail);
         if (!_directed) {
-            for (auto it = _graph[tail].begin(); it != _graph[tail].end(); it++) {
-                if ((*it).first == head) {
-                    _graph[tail].erase(it);
-                    return;
-                }
-            }
+            _graph[tail].erase(head);
         }
     }
 }
 
-void Graph::print(FILE* file) {
+void Graph::print(ostream& outStream) {
     char mode = _directed ? 'A' : 'E';
-    fprintf(file, "Nodes %i\n", _size);
+    outStream << "Nodes " << _size << endl;
     for (uint i = 0; i < _size; i++) {
-        for (uint j = 0; j < _graph[i].size(); j++) {
-            if (!_directed && _graph[i][j].first < i) {
+        for (auto j = _graph[i].begin(); j != _graph[i].end(); j++) {
+            if (!_directed && j->first < i) {
                 continue;
             }
-            fprintf(file, "%c %i %i %i\n", mode, _graph[i][j].first + 1, i + 1, _graph[i][j].second);
+            outStream << mode << ' ' << j->first + 1 << ' ' << i + 1 << ' ' << j->second << endl;
         }
     }
 }
@@ -74,9 +64,9 @@ void Graph::buildSPT(uint root) {
         uint v = edge.first;
         uint dist = edge.second;
         if (dist <= _distance[v]) {
-            for (uint i = 0; i < _graph[v].size(); i++) {
-                uint u = _graph[v][i].first;
-                uint weight = _graph[v][i].second;
+            for (auto it = _graph[v].begin(); it != _graph[v].end(); it++) {
+                const uint& u = it->first;
+                const uint& weight = it->second;
                 if (_distance[u] > _distance[v] + weight) {
                     if (_distance[u] != UINT_MAX) {
                         _spt->removeEdge(lastPath[u], u);
@@ -89,7 +79,6 @@ void Graph::buildSPT(uint root) {
             }
         }
     }
-    //return res;
 }
 
 Graph* Graph::getSPT() {
