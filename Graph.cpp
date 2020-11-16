@@ -1,6 +1,7 @@
 #include "Graph.h"
 #include <limits>
 #include <queue>
+#include <stack>
 #include <functional>
 
 Graph::Graph(uint size, bool directed) {
@@ -65,38 +66,81 @@ void Graph::print(ostream& outStream) {
     }
 }
 
-void Graph::buildSPT(uint root) {
+void Graph::buildSPT() {
+    uint root = _directed ? _root : *(_terminals.begin());
     vector<uint> lastPath(_size, UINT_MAX);
+    vector<uint> distance(_size, UINT_MAX);
     auto comparator = [](pair<uint, uint> e1, pair<uint, uint> e2) { return e1.second > e2.second; };
     priority_queue <pair<uint, uint>, vector<pair<uint, uint>>, decltype(comparator)> q(comparator);
     delete _spt;
     _spt = new Graph(_size, _directed);
-    _distance.resize(_size);
-    for (auto& n : _distance) {
-        n = UINT_MAX;
-    }
-    if (!_spt || _distance.size() != _size || lastPath.size() != _size) {
+    if (!_spt || distance.size() != _size || lastPath.size() != _size) {
         return;
     }
-    _distance[root] = 0;
+    distance[root] = 0;
     q.emplace(make_pair(root, 0));
     while (!q.empty()) {
         auto edge = q.top();
         q.pop();
         uint v = edge.first;
         uint dist = edge.second;
-        if (dist <= _distance[v]) {
+        if (dist <= distance[v]) {
             for (auto it = _graph[v].begin(); it != _graph[v].end(); it++) {
                 const uint& u = it->first;
                 const uint& weight = it->second;
-                if (_distance[u] > _distance[v] + weight) {
-                    if (_distance[u] != UINT_MAX) {
+                if (distance[u] > distance[v] + weight) {
+                    if (distance[u] != UINT_MAX) {
                         _spt->removeEdge(lastPath[u], u);
                     }
-                    _distance[u] = _distance[v] + weight;
+                    distance[u] = distance[v] + weight;
                     lastPath[u] = v;
                     _spt->setEdge(v, u, weight);
-                    q.emplace(make_pair(u, _distance[u]));
+                    q.emplace(make_pair(u, distance[u]));
+                }
+            }
+        }
+    }
+    removeExcessNodes();
+}
+
+void Graph::removeExcessNodes() {
+    stack<uint> vertStack;
+    stack<pair<uint, uint>> pathStack;
+    uint lastVert = UINT_MAX;
+    vector<bool> visited(_size, false);
+    _sptLenght = 0;
+    vertStack.push(_directed ? _root : *(_terminals.begin()));
+    while (!vertStack.empty()) {
+        uint v = vertStack.top();
+        if (lastVert != UINT_MAX) {
+            pathStack.push(make_pair(lastVert, v));
+        }
+        vertStack.pop();
+        lastVert = v;
+        visited[v] = true;
+        if (pathStack.size() > 0 && (!_directed && _spt->_graph[v].size() == 1 || _directed && _spt->_graph[v].empty())) {
+            bool foundTerminal = false;
+            pair<uint, uint> edge;
+            while (!pathStack.empty() && (vertStack.empty() ||
+                _spt->_graph[pathStack.top().second].find(vertStack.top()) == _spt->_graph[pathStack.top().second].end())) {
+                edge = pathStack.top();
+                pathStack.pop();
+                if (!foundTerminal) {
+                    if (_terminals.find(edge.second) != _terminals.end()) {
+                        foundTerminal = true;
+                        continue;
+                    }
+                    _sptLenght -= _spt->_graph[edge.first][edge.second];
+                    _spt->removeEdge(edge.first, edge.second);
+                }
+            }
+            lastVert = edge.first;
+        }
+        else {
+            for (auto it = _spt->_graph[v].begin(); it != _spt->_graph[v].end(); it++) {
+                if (!visited[it->first]) {
+                    vertStack.push(it->first);
+                    _sptLenght += it->second;
                 }
             }
         }
@@ -107,8 +151,8 @@ Graph* Graph::getSPT() {
     return _spt;
 }
 
-vector<uint>& Graph::getDistances() {
-    return _distance;
+uint Graph::getSPTLength() {
+    return _sptLenght;
 }
 
 unordered_set<uint>& Graph::getTerminals() {

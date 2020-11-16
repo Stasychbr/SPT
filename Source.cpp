@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <ctime>
 #include "GraphParser.h"
 
 int main(int argc, char* argv[]) {
@@ -8,22 +9,20 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     try {
+        clock_t time = clock();
         Graph* graph = GraphParser::parseFile(argv[1]);
-        ofstream output("output.txt");
-        if (output.good()) {
-            graph->print(output);
-            graph->buildSPT(0);
-            vector<uint>& test = graph->getDistances();
-            for (int i = 0; i < test.size(); i++) {
-                cout << "to " << i + 1 << ": " << test[i] << endl;
-            }
-            graph->getSPT()->print();
-            auto& terminals = graph->getTerminals();
-            cout << "Terminals " << terminals.size() << endl;
-            for (auto it = terminals.begin(); it != terminals.end(); it++) {
-                cout << "T " << *it + 1 << endl;
-            }
-        }
+        cout << "reading time: " << (double)(clock() - time) / CLOCKS_PER_SEC << " s." << endl;
+        time = clock();
+        graph->buildSPT();
+        time = clock() - time;
+        //graph->getSPT()->print();
+        auto& terminals = graph->getTerminals();
+        cout << "Terminals " << terminals.size() << endl;
+        /*for (auto it = terminals.begin(); it != terminals.end(); it++) {
+            cout << "T " << *it + 1 << endl;
+        }*/
+        cout << "Opt: " << graph->getSPTLength() << endl;
+        cout << "time: " << (double)time / CLOCKS_PER_SEC << " s." << endl;
         delete graph;
     }
     catch (const char* msg) {

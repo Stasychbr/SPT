@@ -11,12 +11,13 @@ typedef unsigned int uint;
 class Graph {
 private:
     unordered_map<uint, uint>* _graph = nullptr; //head : (tail, weight)
-    vector<uint> _distance;
     unordered_set<uint> _terminals;
     uint _root = UINT_MAX;
     Graph* _spt = nullptr;
+    uint _sptLenght = 0;
     uint _size = 0;
     bool _directed = false;
+    void removeExcessNodes();
 public:
     Graph(uint size, bool directed);
     bool isDirected();
@@ -27,9 +28,9 @@ public:
     void setRoot(uint root);
     void removeEdge(uint head, uint tail);
     void print(ostream& outStream = cout);
-    void buildSPT(uint root);
+    void buildSPT();
     Graph* getSPT();
-    vector<uint>& getDistances();
+    uint getSPTLength();
     unordered_set<uint>& getTerminals();
     ~Graph();
 };
