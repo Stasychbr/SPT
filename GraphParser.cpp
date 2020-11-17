@@ -1,49 +1,71 @@
 #include "GraphParser.h"
 #include <fstream>
 #include <cstdlib>
+#include <memory>
 
 void GraphParser::deleteComments(char* str) {
-    int i;
-    for (i = 0; str[i]; i++) {
-        if (str[i] == '#') {
-            break;
+    while (*str) {
+        if (*str == '#') {
+            while (*str && *str != '\n') {
+                *str = ' ';
+                str++;
+            }
+        }
+        else {
+            str++;
         }
     }
-    str[i] = 0;
 }
 
-void GraphParser::skipEmptyLines(ifstream& file, char* buf, int bufSize) {
-    do {
-        file.getline(buf, bufSize);
-        deleteComments(buf);
-    } while (file.good() && *buf == 0);
+void GraphParser::readGraphRow(char*& line, uint* head, uint* tail, uint* weight) {
+    uint* params[3] = { tail, head, weight };
+    for (int i = 0; i < 3; i++) {
+        *params[i] = 0;
+        while (*line && !isdigit(*line)) {
+            line++;
+        }
+        if (!*line) {
+            break;
+        }
+        *params[i] = atol(line);
+        while (*line && isdigit(*line)) {
+            line++;
+        }
+    }
 }
 
-Graph* GraphParser::proceedGraphSection(ifstream& file, char* buf, int bufSize) {
+Graph* GraphParser::proceedGraphSection(char* buf) {
     uint nodes = 0;
     Graph* graph = nullptr;
     uint head, tail, weight;
-    int read;
+    char* curLine, * endLine;
     bool directed = false;
     const char* exepMsg = "Wrong file format (Graph section)";
-    skipEmptyLines(file, buf, bufSize);
-    nodes = (uint)atoi(buf + sizeof("Nodes"));
-    if (nodes == 0) {
-        delete[] buf;
+    curLine = strstr(buf, "Nodes");
+    if (!curLine) {
         throw exepMsg;
     }
-    do {
-        file.getline(buf, bufSize);
-    } while (file.good() && *buf != 'E' && *buf != 'A');
-    if (*buf == 'E') {
+    nodes = (uint)atoi(curLine + sizeof("Nodes"));
+    if (nodes == 0) {
+        throw exepMsg;
+    }
+    curLine = strstr(curLine, "\nE ");
+    if (curLine) {
         directed = false;
     }
-    else if (*buf == 'A') {
-        directed = true;
-    }
     else {
-        delete[] buf;
-        throw exepMsg;
+        curLine = strstr(buf, "\nA ");
+        if (curLine) {
+            directed = true;
+        }
+        else {
+            throw exepMsg;
+        }
+    }
+    curLine++;
+    endLine = strstr(curLine, "END");
+    if (!endLine) {
+        throw "Can't find the end of the Graph section";
     }
     try {
         graph = new Graph(nodes, directed);
@@ -52,92 +74,91 @@ Graph* GraphParser::proceedGraphSection(ifstream& file, char* buf, int bufSize) 
         }
     }
     catch (const char* msg) {
-        delete[] buf;
         throw msg;
     }
-    while (strcmp(buf, "END")) {
-        deleteComments(buf);
-        read = sscanf_s(buf, "%*c %i %i %i", &tail, &head, &weight);
-        if (read == 3) {
+    while (curLine && curLine < endLine) {
+        readGraphRow(curLine, &head, &tail, &weight);
+        if (head != 0 && tail != 0 && weight != 0) {
             graph->setEdge(head - 1, tail - 1, weight);
         }
-        if (!file.good()) {
-            delete graph;
-            delete[] buf;
-            throw exepMsg;
+        while (curLine < endLine && !isdigit(*curLine)) {
+            curLine++;
         }
-        file.getline(buf, bufSize);
     }
     return graph;
 }
 
-void GraphParser::proceedTerminalSection(ifstream& file, Graph* graph, char* buf, int bufSize) {
+void GraphParser::proceedTerminalSection(Graph* graph, char* buf) {
     uint terminals;
     uint root;
     uint termNum;
-    int read;
     const char* exepMsg = "Wrong file format (Terminals section)";
-    skipEmptyLines(file, buf, bufSize);
-    terminals = (uint)atoi(buf + sizeof("Terminals"));
+    char* curLine, * endLine;
+    curLine = strstr(buf, "\nTerminals");
+    if (!curLine) {
+        delete graph;
+        throw exepMsg;
+    }
+    terminals = (uint)atoi(curLine + sizeof("\nTerminals"));
     if (terminals == 0) {
         delete graph;
-        delete[] buf;
         throw exepMsg;
     }
     graph->setTermsNumber(terminals);
-    skipEmptyLines(file, buf, bufSize);
     if (graph->isDirected()) {
-        root = (uint)atoi(buf + sizeof("Root"));
+        curLine = strstr(curLine, "Root");
+        root = (uint)atoi(curLine + sizeof("Root"));
         if (root == 0) {
             delete graph;
-            delete[] buf;
             throw exepMsg;
         }
-        graph->setRoot(root);
+        graph->setRoot(root - 1);
     }
-    while (strcmp(buf, "END")) {
-        deleteComments(buf);
-        read = sscanf_s(buf, "%*c %i", &termNum);
-        if (read == 1) {
-            graph->setTerminal(termNum - 1);
+    endLine = strstr(curLine, "END");
+    if (!endLine) {
+        throw "Can't find the end of the Terminals section";
+    }
+    curLine = strstr(curLine, "T ");
+    while (curLine && curLine < endLine) {
+        while (curLine < endLine && !isdigit(*curLine)) {
+            curLine++;
         }
-        if (!file.good()) {
-            delete graph;
-            delete[] buf;
-            throw exepMsg;
+        termNum = atol(curLine);
+        graph->setTerminal(termNum - 1);
+        while (isdigit(*curLine)) {
+            curLine++;
         }
-        file.getline(buf, bufSize);
     }
 }
 
 Graph* GraphParser::parseFile(const char* filePath) {
     ifstream file(filePath);
-    const int bufSize = 128;
-    char* buf = new char[bufSize];
     Graph* graph = nullptr;
+    uint bufSize;
+    char* buf, * graphSec, * termSec;
+    file.seekg(0, ios_base::end);
+    bufSize = (uint)file.tellg();
+    file.seekg(0, ios_base::beg);
+    buf = new char[bufSize + 1];
     if (!buf) {
         throw "Not enough heap memory";
     }
+    unique_ptr<char[]> up(buf);
     if (!file.is_open()) {
-        delete[] buf;
         throw "Can't open file";
     }
-    do {
-        file.getline(buf, bufSize);
-    } while (file.good() && strcmp(buf, "SECTION Graph"));
-    if (!file.good()) {
-        delete[] buf;
-        throw "Wrong file format";
+    file.read(buf, bufSize);
+    buf[bufSize] = 0;
+    deleteComments(buf);
+    graphSec = strstr(buf, "SECTION Graph");
+    if (!graphSec) {
+        throw "Wrong file format (can't find Graph section)";
     }
-    graph = proceedGraphSection(file, buf, bufSize);
-    do {
-        file.getline(buf, bufSize);
-    } while (file.good() && strcmp(buf, "SECTION Terminals"));
-    if (!file.good()) {
-        delete[] buf;
-        throw "Wrong file format";
+    graph = proceedGraphSection(graphSec);
+    termSec = strstr(graphSec, "SECTION Terminals");
+    if (!termSec) {
+        throw "Wrong file format (can't find Terminals section)";
     }
-    proceedTerminalSection(file, graph, buf, bufSize);
-    delete[] buf;
+    proceedTerminalSection(graph, termSec);
     return graph;
 }

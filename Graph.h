@@ -19,7 +19,7 @@ private:
     bool _directed = false;
     void removeExcessNodes();
 public:
-    Graph(uint size, bool directed);
+    Graph(uint size, bool directed) noexcept(false);
     bool isDirected();
     void setEdge(uint head, uint tail, uint weight);
     void setTerminal(uint terminal);
@@ -30,6 +30,7 @@ public:
     void print(ostream& outStream = cout);
     void buildSPT();
     Graph* getSPT();
+    uint getRoot();
     uint getSPTLength();
     unordered_set<uint>& getTerminals();
     ~Graph();

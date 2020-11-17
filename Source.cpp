@@ -4,6 +4,7 @@
 #include "GraphParser.h"
 
 int main(int argc, char* argv[]) {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     if (argc < 2) {
         std::cout << "Pass the file path as the command line argument\n";
         return 0;
@@ -16,11 +17,6 @@ int main(int argc, char* argv[]) {
         graph->buildSPT();
         time = clock() - time;
         //graph->getSPT()->print();
-        auto& terminals = graph->getTerminals();
-        cout << "Terminals " << terminals.size() << endl;
-        /*for (auto it = terminals.begin(); it != terminals.end(); it++) {
-            cout << "T " << *it + 1 << endl;
-        }*/
         cout << "Opt: " << graph->getSPTLength() << endl;
         cout << "time: " << (double)time / CLOCKS_PER_SEC << " s." << endl;
         delete graph;

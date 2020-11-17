@@ -4,10 +4,10 @@
 class GraphParser {
 private:
     static void deleteComments(char* str);
-    static void skipEmptyLines(ifstream& file, char* buf, int bufSize);
-    static Graph* proceedGraphSection(ifstream& file, char* buf, int bufSize);
-    static void proceedTerminalSection(ifstream& file, Graph* graph, char* buf, int bufSize);
+    static void readGraphRow(char*& line, uint* head, uint* tail, uint* weight);
+    static Graph* proceedGraphSection(char* buf);
+    static void proceedTerminalSection(Graph* graph, char* buf);
 public:
-    static Graph* parseFile(const char* filePath);
+    static Graph* parseFile(const char* filePath) noexcept(false);
 };
 

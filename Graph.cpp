@@ -2,6 +2,7 @@
 #include <limits>
 #include <queue>
 #include <stack>
+#include <deque>
 #include <functional>
 
 Graph::Graph(uint size, bool directed) {
@@ -67,7 +68,7 @@ void Graph::print(ostream& outStream) {
 }
 
 void Graph::buildSPT() {
-    uint root = _directed ? _root : *(_terminals.begin());
+    uint root = getRoot();
     vector<uint> lastPath(_size, UINT_MAX);
     vector<uint> distance(_size, UINT_MAX);
     auto comparator = [](pair<uint, uint> e1, pair<uint, uint> e2) { return e1.second > e2.second; };
@@ -82,8 +83,8 @@ void Graph::buildSPT() {
     while (!q.empty()) {
         auto edge = q.top();
         q.pop();
-        uint v = edge.first;
-        uint dist = edge.second;
+        uint& v = edge.first;
+        uint& dist = edge.second;
         if (dist <= distance[v]) {
             for (auto it = _graph[v].begin(); it != _graph[v].end(); it++) {
                 const uint& u = it->first;
@@ -105,15 +106,16 @@ void Graph::buildSPT() {
 
 void Graph::removeExcessNodes() {
     stack<uint> vertStack;
-    stack<pair<uint, uint>> pathStack;
+    deque<pair<uint, uint>> pathStack;
     uint lastVert = UINT_MAX;
     vector<bool> visited(_size, false);
+    vector<bool> leadToTerminal(_size, false);
     _sptLenght = 0;
-    vertStack.push(_directed ? _root : *(_terminals.begin()));
+    vertStack.push(getRoot());
     while (!vertStack.empty()) {
         uint v = vertStack.top();
         if (lastVert != UINT_MAX) {
-            pathStack.push(make_pair(lastVert, v));
+            pathStack.push_back(make_pair(lastVert, v));
         }
         vertStack.pop();
         lastVert = v;
@@ -122,12 +124,18 @@ void Graph::removeExcessNodes() {
             bool foundTerminal = false;
             pair<uint, uint> edge;
             while (!pathStack.empty() && (vertStack.empty() ||
-                _spt->_graph[pathStack.top().second].find(vertStack.top()) == _spt->_graph[pathStack.top().second].end())) {
-                edge = pathStack.top();
-                pathStack.pop();
-                if (!foundTerminal) {
+                _spt->_graph[pathStack.back().second].find(vertStack.top()) == _spt->_graph[pathStack.back().second].end())) {
+                edge = pathStack.back();
+                pathStack.pop_back();
+                if (!foundTerminal && !leadToTerminal[edge.second]) {
                     if (_terminals.find(edge.second) != _terminals.end()) {
                         foundTerminal = true;
+                        for (auto it = pathStack.rbegin(); it != pathStack.rend(); it++) {
+                            if (leadToTerminal[it->first]) {
+                                break;
+                            }
+                            leadToTerminal[it->first] = true;
+                        }
                         continue;
                     }
                     _sptLenght -= _spt->_graph[edge.first][edge.second];
@@ -149,6 +157,10 @@ void Graph::removeExcessNodes() {
 
 Graph* Graph::getSPT() {
     return _spt;
+}
+
+uint Graph::getRoot() {
+    return _directed ? _root : *(_terminals.begin());
 }
 
 uint Graph::getSPTLength() {
