@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <memory>
 
+using namespace std;
+
 void GraphParser::deleteComments(char* str) {
     while (*str) {
         if (*str == '#') {

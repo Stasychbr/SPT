@@ -5,6 +5,8 @@
 #include <deque>
 #include <functional>
 
+using namespace std;
+
 Graph::Graph(uint size, bool directed) {
     _graph = new unordered_map<uint, uint>[size];
     if (!_graph) {
@@ -124,7 +126,7 @@ void Graph::removeExcessNodes() {
             bool foundTerminal = false;
             pair<uint, uint> edge;
             while (!pathStack.empty() && (vertStack.empty() ||
-                _spt->_graph[pathStack.back().second].find(vertStack.top()) == _spt->_graph[pathStack.back().second].end())) {
+                _spt->_graph[pathStack.back().second].find(vertStack.top()) == _spt->_graph[pathStack.back().second].end())) { 
                 edge = pathStack.back();
                 pathStack.pop_back();
                 if (!foundTerminal && !leadToTerminal[edge.second]) {
@@ -159,6 +161,10 @@ Graph* Graph::getSPT() {
     return _spt;
 }
 
+uint Graph::getSize() {
+    return _size;
+}
+
 uint Graph::getRoot() {
     return _directed ? _root : *(_terminals.begin());
 }
@@ -167,8 +173,17 @@ uint Graph::getSPTLength() {
     return _sptLenght;
 }
 
-unordered_set<uint>& Graph::getTerminals() {
+const unordered_set<uint>& Graph::getTerminals() {
     return _terminals;
+}
+
+const unordered_map<uint, uint>& Graph::getAdjacencyList(uint node) {
+    if (node >= 0 && node < _size) {
+        return _graph[node];
+    }
+    else {
+        return _graph[0];
+    }
 }
 
 Graph::~Graph() {

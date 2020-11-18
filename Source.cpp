@@ -3,6 +3,8 @@
 #include <ctime>
 #include "GraphParser.h"
 
+using namespace std;
+
 int main(int argc, char* argv[]) {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     if (argc < 2) {
@@ -11,15 +13,13 @@ int main(int argc, char* argv[]) {
     }
     try {
         clock_t time = clock();
-        Graph* graph = GraphParser::parseFile(argv[1]);
+        unique_ptr<Graph> graph(GraphParser::parseFile(argv[1]));
         cout << "reading time: " << (double)(clock() - time) / CLOCKS_PER_SEC << " s." << endl;
         time = clock();
         graph->buildSPT();
         time = clock() - time;
-        //graph->getSPT()->print();
         cout << "Opt: " << graph->getSPTLength() << endl;
         cout << "time: " << (double)time / CLOCKS_PER_SEC << " s." << endl;
-        delete graph;
     }
     catch (const char* msg) {
         std::cout << msg << std::endl;
