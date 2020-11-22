@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <memory>
 #include "Graph.h"
 
 /**
@@ -10,7 +12,7 @@ private:
      * @brief Method that replaces all comments in the string with spaces
      * @param str Null terminated string with file's data
     */
-    static void deleteComments(char* str);
+    static void deleteComments(std::string& data);
     /**
      * @brief Method that extracts the information about graph's edge out of the line
      * @param line Pointer to the line in the Graph section
@@ -18,20 +20,20 @@ private:
      * @param tail Pointer where the tail node will be written
      * @param weight Pointer where the weight of the edge will be written
     */
-    static void readGraphRow(char*& line, uint* head, uint* tail, uint* weight);
+    static void readGraphEdges(std::unique_ptr<Graph>& graph, std::string& data, std::string& lineStart);
     /**
      * @brief Method that handles Graph section and extracts all edges of the graph
      * @throw const char* type in case of the heap memory lack
      * @param buf Pointer to the Graph section
      * @return Pointer to the Graph
     */
-    static Graph* proceedGraphSection(char* buf) noexcept(false);
+    static std::unique_ptr<Graph> proceedGraphSection(std::string& data) noexcept(false);
     /**
      * @brief Method that handles Terminals section and extracts all terminals of the graph
      * @param graph Pointer to the graph after proceeding Graph section
      * @param buf Pointer to the Terminals section
     */
-    static void proceedTerminalSection(Graph* graph, char* buf);
+    static void proceedTerminalSection(std::unique_ptr<Graph>& graph, std::string& data);
 public:
     /**
      * @brief Static method that extracts Graph from the stp file
@@ -39,6 +41,6 @@ public:
      * @param filePath Path to the stp file
      * @return Pointer to the Graph class
     */
-    static Graph* parseFile(const char* filePath) noexcept(false);
+    static std::unique_ptr<Graph> parseFile(const char* filePath) noexcept(false);
 };
 

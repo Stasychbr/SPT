@@ -18,6 +18,13 @@ int main(int argc, char* argv[]) {
         time = clock();
         graph->buildSPT();
         time = clock() - time;
+        Graph* spt = graph->getSPT();
+        auto& terms = graph->getTerminals();
+        for (auto it = terms.cbegin(); it != terms.cend(); it++) {
+            if (spt->getAdjacencyList(*it).empty()) {
+                cout << "troubles with terminal " << *it + 1 << endl;
+            }
+        }
         cout << "Opt: " << graph->getSPTLength() << endl;
         cout << "time: " << (double)time / CLOCKS_PER_SEC << " s." << endl;
     }
