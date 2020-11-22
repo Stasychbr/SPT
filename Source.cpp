@@ -7,9 +7,9 @@
 using namespace std;
 
 void proceedFile(const filesystem::path& path) {
-    clock_t time = clock();
     cout << "Proceeding the " << path.filename() << " file" << endl;
-    unique_ptr<Graph> graph(GraphParser::parseFile(path.c_str()));
+    clock_t time = clock();
+    unique_ptr<Graph> graph(GraphParser::parseFile(path.generic_wstring()));
     cout << "reading time: " << (double)(clock() - time) / CLOCKS_PER_SEC << " s." << endl;
     time = clock();
     graph->buildSPT();

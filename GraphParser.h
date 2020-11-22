@@ -39,6 +39,6 @@ public:
      * @param filePath Path to the stp file
      * @return Unique pointer to the Graph class
     */
-    static std::unique_ptr<Graph> parseFile(const wchar_t* filePath) noexcept(false);
+    static std::unique_ptr<Graph> parseFile(const std::wstring& filePath) noexcept(false);
 };
 

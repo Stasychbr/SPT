@@ -112,7 +112,7 @@ void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data)
     }
 }
 
-unique_ptr<Graph> GraphParser::parseFile(const wchar_t* filePath) {
+unique_ptr<Graph> GraphParser::parseFile(const wstring& filePath) {
     ifstream file(filePath);
     string data;
     size_t  fileSize;
