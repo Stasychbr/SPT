@@ -17,16 +17,21 @@ void GraphParser::deleteComments(string& data) {
     }
 }
 
-void GraphParser::readGraphEdges(unique_ptr<Graph>& graph, string& data, string& lineStart) {
-    size_t pos = 0;
+void GraphParser::readGraphEdges(unique_ptr<Graph>& graph, string& data) {
+    const string lineStart = graph->isDirected() ? "\nA " : "\nE ";
+    size_t pos = 0, eolPos = 0;
     size_t prefixLen = lineStart.length();
     array<uint, 3> params;
     try {
-        while ((pos = data.find(lineStart)) != data.npos) {
-            data.erase(0, pos + prefixLen);
+        while ((pos = data.find(lineStart,  pos)) != data.npos) {
+            pos += prefixLen;
+            eolPos = data.find('\n', pos);
+            string curLine = data.substr(pos, eolPos - pos);
+            size_t chRead = 0;
             for (uint& param : params) {
-                param = (uint)stoul(data, &pos);
-                data.erase(0, pos);
+                param = (uint)stoul(curLine, &chRead);
+                curLine.erase(0, chRead);
+                pos += chRead;
             }
             graph->setEdge(params[1] - 1, params[0] - 1, params[2]);
         }
@@ -61,7 +66,7 @@ unique_ptr<Graph> GraphParser::proceedGraphSection(string& data) {
         lineStart = "\nA ";
     }
     unique_ptr<Graph> graph = make_unique<Graph>(nodesNum, directed);
-    readGraphEdges(graph, data, lineStart);
+    readGraphEdges(graph, data);
     return graph;
 }
 
@@ -80,7 +85,6 @@ void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data)
     data.erase(0, pos + sizeof("Terminals"));
     try {
         termNum = (uint)stoul(data, &pos);
-        data.erase(0, pos);
         graph->setTermsNumber(termNum);
     }
     catch (exception excep) {
@@ -89,7 +93,6 @@ void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data)
     if (graph->isDirected()) {
         try {
             pos = data.find("Root");
-            data.erase(0, pos + sizeof("Root"));
             root = stoul(data);
         }
         catch (exception excep) {
@@ -109,7 +112,7 @@ void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data)
     }
 }
 
-unique_ptr<Graph> GraphParser::parseFile(const char* filePath) {
+unique_ptr<Graph> GraphParser::parseFile(const wchar_t* filePath) {
     ifstream file(filePath);
     string data;
     size_t  fileSize;
