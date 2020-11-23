@@ -1,143 +1,131 @@
 #include "GraphParser.h"
 #include <fstream>
+#include <sstream>
 #include <cstdlib>
+#include <memory>
+#include <array>
 
-void GraphParser::deleteComments(char* str) {
-    int i;
-    for (i = 0; str[i]; i++) {
-        if (str[i] == '#') {
-            break;
+using namespace std;
+
+void GraphParser::deleteComments(string& data) {
+    size_t pos = 0;
+    while ((pos = data.find('#', pos)) != data.npos) {
+        while (pos < data.npos && data[pos] != '\n') {
+            data[pos] = ' ';
+            pos++;
         }
     }
-    str[i] = 0;
 }
 
-void GraphParser::skipEmptyLines(ifstream& file, char* buf, int bufSize) {
-    do {
-        file.getline(buf, bufSize);
-        deleteComments(buf);
-    } while (file.good() && *buf == 0);
-}
-
-Graph* GraphParser::proceedGraphSection(ifstream& file, char* buf, int bufSize) {
-    uint nodes = 0;
-    Graph* graph = nullptr;
-    uint head, tail, weight;
-    int read;
-    bool directed = false;
-    const char* exepMsg = "Wrong file format (Graph section)";
-    skipEmptyLines(file, buf, bufSize);
-    nodes = (uint)atoi(buf + sizeof("Nodes"));
-    if (nodes == 0) {
-        delete[] buf;
-        throw exepMsg;
-    }
-    do {
-        file.getline(buf, bufSize);
-    } while (file.good() && *buf != 'E' && *buf != 'A');
-    if (*buf == 'E') {
-        directed = false;
-    }
-    else if (*buf == 'A') {
-        directed = true;
-    }
-    else {
-        delete[] buf;
-        throw exepMsg;
-    }
+void GraphParser::readGraphEdges(unique_ptr<Graph>& graph, string& data) {
+    const string lineStart = graph->isDirected() ? "\nA " : "\nE ";
+    size_t pos = 0, eolPos = 0;
+    size_t prefixLen = lineStart.length();
+    array<uint, 3> params;
     try {
-        graph = new Graph(nodes, directed);
-        if (!graph) {
-            throw "Not enough heap memory";
+        while ((pos = data.find(lineStart,  pos)) != data.npos) {
+            pos += prefixLen;
+            eolPos = data.find('\n', pos);
+            string curLine = data.substr(pos, eolPos - pos);
+            size_t chRead = 0;
+            for (uint& param : params) {
+                param = (uint)stoul(curLine, &chRead);
+                curLine.erase(0, chRead);
+                pos += chRead;
+            }
+            graph->setEdge(params[1] - 1, params[0] - 1, params[2]);
         }
     }
-    catch (const char* msg) {
-        delete[] buf;
-        throw msg;
+    catch (exception excep) {
+        throw "Unable to read graph's edge";
     }
-    while (strcmp(buf, "END")) {
-        deleteComments(buf);
-        read = sscanf_s(buf, "%*c %i %i %i", &tail, &head, &weight);
-        if (read == 3) {
-            graph->setEdge(head - 1, tail - 1, weight);
-        }
-        if (!file.good()) {
-            delete graph;
-            delete[] buf;
-            throw exepMsg;
-        }
-        file.getline(buf, bufSize);
+}
+
+unique_ptr<Graph> GraphParser::proceedGraphSection(string& data) {
+    const string sectionName = "SECTION Graph";
+    string lineStart = "\nE ";
+    const char* excepMsg = "Wrong format of graph section";
+    size_t pos = 0, endPos = 0;
+    uint nodesNum = 0;
+    bool directed = false;
+    pos = data.find(sectionName);
+    pos = data.find("Nodes", pos + sectionName.length());
+    if (pos == data.npos) {
+        throw excepMsg;
     }
+    data.erase(0, pos + sizeof("Nodes"));
+    try {
+        nodesNum = (uint)stoul(data, &pos);
+    }
+    catch (exception) {
+        throw excepMsg;
+    }
+    pos = data.find(lineStart);
+    if (pos == data.npos) {
+        directed = true;
+        lineStart = "\nA ";
+    }
+    unique_ptr<Graph> graph = make_unique<Graph>(nodesNum, directed);
+    readGraphEdges(graph, data);
     return graph;
 }
 
-void GraphParser::proceedTerminalSection(ifstream& file, Graph* graph, char* buf, int bufSize) {
-    uint terminals;
-    uint root;
-    uint termNum;
-    int read;
-    const char* exepMsg = "Wrong file format (Terminals section)";
-    skipEmptyLines(file, buf, bufSize);
-    terminals = (uint)atoi(buf + sizeof("Terminals"));
-    if (terminals == 0) {
-        delete graph;
-        delete[] buf;
-        throw exepMsg;
+void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data) {
+    const string sectionName = "SECTION Terminals";
+    const string lineStart = "\nT ";
+    const char* excepMsg = "Wrong format of terminals section";
+    uint termNum = 0;
+    uint terminal = 0;
+    uint root = 0;
+    size_t pos = data.find(sectionName);
+    pos = data.find("Terminals", pos + sectionName.length());
+    if (pos == data.npos) {
+        throw excepMsg;
     }
-    graph->setTermsNumber(terminals);
-    skipEmptyLines(file, buf, bufSize);
+    data.erase(0, pos + sizeof("Terminals"));
+    try {
+        termNum = (uint)stoul(data, &pos);
+        graph->setTermsNumber(termNum);
+    }
+    catch (exception excep) {
+        throw excepMsg;
+    }
     if (graph->isDirected()) {
-        root = (uint)atoi(buf + sizeof("Root"));
-        if (root == 0) {
-            delete graph;
-            delete[] buf;
-            throw exepMsg;
+        try {
+            pos = data.find("Root");
+            root = stoul(data);
         }
-        graph->setRoot(root);
+        catch (exception excep) {
+            throw excepMsg;
+        }
     }
-    while (strcmp(buf, "END")) {
-        deleteComments(buf);
-        read = sscanf_s(buf, "%*c %i", &termNum);
-        if (read == 1) {
-            graph->setTerminal(termNum - 1);
+    try {
+        while ((pos = data.find(lineStart)) != data.npos) {
+            data.erase(0, pos + lineStart.length());
+            terminal = stoul(data, &pos);
+            graph->setTerminal(terminal - 1);
+            data.erase(0, pos);
         }
-        if (!file.good()) {
-            delete graph;
-            delete[] buf;
-            throw exepMsg;
-        }
-        file.getline(buf, bufSize);
+    }
+    catch (exception excep) {
+        throw excepMsg;
     }
 }
 
-Graph* GraphParser::parseFile(const char* filePath) {
+unique_ptr<Graph> GraphParser::parseFile(const wstring& filePath) {
     ifstream file(filePath);
-    const int bufSize = 128;
-    char* buf = new char[bufSize];
-    Graph* graph = nullptr;
-    if (!buf) {
-        throw "Not enough heap memory";
-    }
-    if (!file.is_open()) {
-        delete[] buf;
-        throw "Can't open file";
-    }
-    do {
-        file.getline(buf, bufSize);
-    } while (file.good() && strcmp(buf, "SECTION Graph"));
+    string data;
+    size_t  fileSize;
     if (!file.good()) {
-        delete[] buf;
-        throw "Wrong file format";
+        throw "Unable to open file";
     }
-    graph = proceedGraphSection(file, buf, bufSize);
-    do {
-        file.getline(buf, bufSize);
-    } while (file.good() && strcmp(buf, "SECTION Terminals"));
-    if (!file.good()) {
-        delete[] buf;
-        throw "Wrong file format";
-    }
-    proceedTerminalSection(file, graph, buf, bufSize);
-    delete[] buf;
+    file.seekg(0, ios_base::end);
+    fileSize = (size_t)file.tellg();
+    file.seekg(0, ios_base::beg);
+    data.resize(fileSize);
+    file.read(&data[0], fileSize);
+    deleteComments(data);
+    unique_ptr<Graph> graph = proceedGraphSection(data);
+    proceedTerminalSection(graph, data);
     return graph;
 }
