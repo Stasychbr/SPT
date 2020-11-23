@@ -1,27 +1,26 @@
 #include "Graph.h"
 #include <limits>
 #include <queue>
-#include <stack>
-#include <deque>
+#include <list>
 #include <functional>
+#include <set>
 
 using namespace std;
 
 Graph::Graph(uint size, bool directed) {
-    _graph = new unordered_map<uint, uint>[size];
-    if (!_graph) {
+    _graph.resize(size);
+    if (_graph.size() != size) {
         throw "Not enough heap memory";
     }
-    _size = size;
     _directed = directed;
 }
 
-bool Graph::isDirected() {
+bool Graph::isDirected() const {
     return _directed;
 }
 
 void Graph::setEdge(uint head, uint tail, uint weight) {
-    if (head < _size && tail < _size) {
+    if (head < _graph.size() && tail < _graph.size()) {
         _graph[head][tail] = weight;
         if (!_directed) {
             _graph[tail][head] = weight;
@@ -30,25 +29,30 @@ void Graph::setEdge(uint head, uint tail, uint weight) {
 }
 
 void Graph::setTerminal(uint terminal) {
-    if (terminal < _size) {
-        _terminals.insert(terminal);
+    if (terminal < _graph.size()) {
+        _terminals.push_back(terminal);
     }
 }
 
 void Graph::removeTerminal(uint terminal) {
-    _terminals.erase(terminal);
+    _terminals.remove(terminal);
 }
 
 void Graph::setTermsNumber(uint number) {
-    _terminals.reserve(number);
+    //_terminals.
 }
 
 void Graph::setRoot(uint root) {
-    _root = root;
+    if (root < _graph.size()) {
+        _root = root;
+    }
+    else {
+        root = 0;
+    }
 }
 
 void Graph::removeEdge(uint head, uint tail) {
-    if (head < _size && tail < _size) {
+    if (head < _graph.size() && tail < _graph.size()) {
         _graph[head].erase(tail);
         if (!_directed) {
             _graph[tail].erase(head);
@@ -56,10 +60,10 @@ void Graph::removeEdge(uint head, uint tail) {
     }
 }
 
-void Graph::print(ostream& outStream) {
+void Graph::print(ostream& outStream) const {
     char mode = _directed ? 'A' : 'E';
-    outStream << "Nodes " << _size << endl;
-    for (uint i = 0; i < _size; i++) {
+    outStream << "Nodes " << _graph.size() << endl;
+    for (uint i = 0; i < _graph.size(); i++) {
         for (auto j = _graph[i].begin(); j != _graph[i].end(); j++) {
             if (!_directed && j->first < i) {
                 continue;
@@ -69,116 +73,93 @@ void Graph::print(ostream& outStream) {
     }
 }
 
-void Graph::buildSPT() {
-    uint root = getRoot();
-    vector<uint> lastPath(_size, UINT_MAX);
-    vector<uint> distance(_size, UINT_MAX);
-    auto comparator = [](pair<uint, uint> e1, pair<uint, uint> e2) { return e1.second > e2.second; };
+// distances (total_dist); path (parent node, dist)
+void Graph::dijkstra(uint root, vector<pair<uint, uint>>& path, vector<uint>& distances) {
+    auto comparator = [](pair<uint, uint>& e1, pair<uint, uint>& e2) { return e1.second > e2.second; };
     priority_queue <pair<uint, uint>, vector<pair<uint, uint>>, decltype(comparator)> q(comparator);
-    delete _spt;
-    _spt = new Graph(_size, _directed);
-    if (!_spt || distance.size() != _size || lastPath.size() != _size) {
-        return;
-    }
-    distance[root] = 0;
+    distances[root] = 0;
     q.emplace(make_pair(root, 0));
     while (!q.empty()) {
         auto edge = q.top();
         q.pop();
-        uint& v = edge.first;
-        uint& dist = edge.second;
-        if (dist <= distance[v]) {
+        const uint& v = edge.first;
+        const uint& dist = edge.second;
+        if (dist <= distances[v]) {
             for (auto it = _graph[v].begin(); it != _graph[v].end(); it++) {
                 const uint& u = it->first;
                 const uint& weight = it->second;
-                if (distance[u] > distance[v] + weight) {
-                    if (distance[u] != UINT_MAX) {
-                        _spt->removeEdge(lastPath[u], u);
-                    }
-                    distance[u] = distance[v] + weight;
-                    lastPath[u] = v;
-                    _spt->setEdge(v, u, weight);
-                    q.emplace(make_pair(u, distance[u]));
-                }
-            }
-        }
-    }
-    removeExcessNodes();
-}
-
-void Graph::removeExcessNodes() {
-    stack<uint> vertStack;
-    deque<pair<uint, uint>> pathStack;
-    uint lastVert = UINT_MAX;
-    vector<bool> visited(_size, false);
-    vector<bool> leadToTerminal(_size, false);
-    _sptLenght = 0;
-    vertStack.push(getRoot());
-    while (!vertStack.empty()) {
-        uint v = vertStack.top();
-        if (lastVert != UINT_MAX) {
-            pathStack.push_back(make_pair(lastVert, v));
-        }
-        vertStack.pop();
-        lastVert = v;
-        visited[v] = true;
-        if (pathStack.size() > 0 && (!_directed && _spt->_graph[v].size() == 1 || _directed && _spt->_graph[v].empty())) {
-            bool foundTerminal = false;
-            pair<uint, uint> edge;
-            while (!pathStack.empty() && (vertStack.empty() ||
-                _spt->_graph[pathStack.back().second].find(vertStack.top()) == _spt->_graph[pathStack.back().second].end())) { 
-                edge = pathStack.back();
-                pathStack.pop_back();
-                if (!foundTerminal && !leadToTerminal[edge.second]) {
-                    if (_terminals.find(edge.second) != _terminals.end()) {
-                        foundTerminal = true;
-                        for (auto it = pathStack.rbegin(); it != pathStack.rend(); it++) {
-                            if (leadToTerminal[it->first]) {
-                                break;
-                            }
-                            leadToTerminal[it->first] = true;
-                        }
-                        continue;
-                    }
-                    _sptLenght -= _spt->_graph[edge.first][edge.second];
-                    _spt->removeEdge(edge.first, edge.second);
-                }
-            }
-            lastVert = edge.first;
-        }
-        else {
-            for (auto it = _spt->_graph[v].begin(); it != _spt->_graph[v].end(); it++) {
-                if (!visited[it->first]) {
-                    vertStack.push(it->first);
-                    _sptLenght += it->second;
+                if (distances[u] > distances[v] + weight) {
+                    distances[u] = distances[v] + weight;
+                    path[u] = make_pair(v, weight);
+                    q.emplace(make_pair(u, distances[u]));
                 }
             }
         }
     }
 }
 
-Graph* Graph::getSPT() {
+shared_ptr<const Graph> Graph::buildSPT() {
+    vector<pair<uint, uint>> path(_graph.size());
+    vector<uint> distances(_graph.size());
+    list<uint> leftToInsert(_terminals);
+    _spt = make_shared<Graph>(_graph.size(), _directed);
+    _spt->setTermsNumber(_terminals.size());
+    auto root = leftToInsert.begin(); // DIRECTED PROBLEM!!!
+    for (uint i = 1; i < _terminals.size(); i++) {
+        for (uint j = 0; j < _graph.size(); j++) {
+            distances[j] = UINT_MAX;
+        }
+        _spt->setTerminal(*root); 
+        dijkstra(*root, path, distances);
+        leftToInsert.erase(root);
+        uint minDist = UINT_MAX;
+        for (auto j = leftToInsert.begin(); j != leftToInsert.end(); j++) {
+            if (distances[*j] < minDist) {
+                minDist = distances[*j];
+                root = j;
+            }
+        }
+        uint prevRoot = _spt->_terminals.back();
+        uint curVert = *root;
+        while (curVert != prevRoot) {
+            _spt->setEdge(path[curVert].first, curVert, path[curVert].second);
+            curVert = path[curVert].first;
+        }
+    }
     return _spt;
 }
 
-uint Graph::getSize() {
-    return _size;
+uint Graph::getLenght() const {
+    uint res = 0;
+    for (uint i = 0; i < _graph.size(); i++) {
+        for (auto j = _graph[i].begin(); j != _graph[i].end(); j++) {
+            if (!_directed && j->first < i) {
+                continue;
+            }
+            res += j->second;
+        }
+    }
+    return res;
 }
 
-uint Graph::getRoot() {
+shared_ptr<const Graph> Graph::getSPT() {
+    return _spt;
+}
+
+uint Graph::getSize() const {
+    return _graph.size();
+}
+
+uint Graph::getRoot() const {
     return _directed ? _root : *(_terminals.begin());
 }
 
-uint Graph::getSPTLength() {
-    return _sptLenght;
-}
-
-const unordered_set<uint>& Graph::getTerminals() {
+const list<uint>& Graph::getTerminals() const {
     return _terminals;
 }
 
-const unordered_map<uint, uint>& Graph::getAdjacencyList(uint node) {
-    if (node >= 0 && node < _size) {
+const map<uint, uint>& Graph::getAdjacencyList(uint node) const {
+    if (node >= 0 && node < _graph.size()) {
         return _graph[node];
     }
     else {
@@ -187,6 +168,4 @@ const unordered_map<uint, uint>& Graph::getAdjacencyList(uint node) {
 }
 
 Graph::~Graph() {
-    delete[] _graph;
-    delete _spt;
 }
