@@ -1,28 +1,51 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <filesystem>
 #include "GraphParser.h"
 
 using namespace std;
 
+void proceedFile(const filesystem::path& path, ostream& out) {
+    out << "Proceeding the " << path.filename() << " file" << endl;
+    clock_t time = clock();
+    unique_ptr<Graph> graph(GraphParser::parseFile(path.generic_wstring()));
+    out << "reading time: " << (double)(clock() - time) / CLOCKS_PER_SEC << " s." << endl;
+    out << "Full graph len: " << graph->getLenght() << endl;
+    time = clock();
+    shared_ptr<const Graph> spt = graph->buildSPT();
+    time = clock() - time;
+    out << "Opt: " << spt->getLenght() << endl;
+    out << "computing time: " << (double)time / CLOCKS_PER_SEC << " s." << endl;
+    out << "------------------" << endl;
+}
+
 int main(int argc, char* argv[]) {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    if (argc < 2) {
-        std::cout << "Pass the file path as the command line argument\n";
-        return 0;
+    if (argc >= 2) {
+        for (int i = 1; i < argc; i++) {
+            try {
+                filesystem::path path(argv[i]);
+                proceedFile(path, cout);
+            }
+            catch (exception excep) {
+                cout << excep.what() << endl;
+            }
+        }
     }
-    try {
-        clock_t time = clock();
-        unique_ptr<Graph> graph(GraphParser::parseFile(argv[1]));
-        cout << "reading time: " << (double)(clock() - time) / CLOCKS_PER_SEC << " s." << endl;
-        time = clock();
-        graph->buildSPT();
-        time = clock() - time;
-        cout << "Opt: " << graph->getSPTLength() << endl;
-        cout << "time: " << (double)time / CLOCKS_PER_SEC << " s." << endl;
+    else {
+        filesystem::directory_iterator dir("./");
+        for (auto& file : dir) {
+            try {
+                if (file.path().extension() != ".stp") {
+                    continue;
+                }
+                proceedFile(file.path(), cout);
+            }
+            catch (exception excep) {
+                cout << excep.what() << endl;
+            }
+        }
     }
-    catch (const char* msg) {
-        std::cout << msg << std::endl;
-    };
     return 0;
 }
