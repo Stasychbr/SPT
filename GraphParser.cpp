@@ -33,7 +33,7 @@ void GraphParser::readGraphEdges(unique_ptr<Graph>& graph, string& data) {
                 curLine.erase(0, chRead);
                 pos += chRead;
             }
-            graph->setEdge(params[1] - 1, params[0] - 1, params[2]);
+            graph->setEdge(params[0] - 1, params[1] - 1, params[2]);
         }
     }
     catch (exception excep) {
@@ -78,22 +78,12 @@ void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data)
     uint terminal = 0;
     uint root = 0;
     size_t pos = data.find(sectionName);
-    pos = data.find("Terminals", pos + sectionName.length());
-    if (pos == data.npos) {
-        throw excepMsg;
-    }
-    data.erase(0, pos + sizeof("Terminals"));
-    try {
-        termNum = (uint)stoul(data, &pos);
-        graph->setTermsNumber(termNum);
-    }
-    catch (exception excep) {
-        throw excepMsg;
-    }
     if (graph->isDirected()) {
         try {
             pos = data.find("Root");
+            data.erase(0, pos + sizeof("Root"));
             root = stoul(data);
+            graph->setRoot(root - 1);
         }
         catch (exception excep) {
             throw excepMsg;
