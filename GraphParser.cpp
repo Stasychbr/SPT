@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <memory>
 #include <array>
+#include <stdexcept>
 
 using namespace std;
 
@@ -37,7 +38,7 @@ void GraphParser::readGraphEdges(unique_ptr<Graph>& graph, string& data) {
         }
     }
     catch (exception excep) {
-        throw "Unable to read graph's edge";
+        throw runtime_error("Unable to read graph's edge");
     }
 }
 
@@ -51,14 +52,14 @@ unique_ptr<Graph> GraphParser::proceedGraphSection(string& data) {
     pos = data.find(sectionName);
     pos = data.find("Nodes", pos + sectionName.length());
     if (pos == data.npos) {
-        throw excepMsg;
+        throw runtime_error(excepMsg);
     }
     data.erase(0, pos + sizeof("Nodes"));
     try {
         nodesNum = (uint)stoul(data, &pos);
     }
     catch (exception) {
-        throw excepMsg;
+        throw runtime_error(excepMsg);
     }
     pos = data.find(lineStart);
     if (pos == data.npos) {
@@ -73,23 +74,17 @@ unique_ptr<Graph> GraphParser::proceedGraphSection(string& data) {
 void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data) {
     const string sectionName = "SECTION Terminals";
     const string lineStart = "\nT ";
-    const char* excepMsg = "Wrong format of terminals section";
     uint termNum = 0;
     uint terminal = 0;
     uint root = 0;
     size_t pos = data.find(sectionName);
-    if (graph->isDirected()) {
-        try {
+    try {
+        if (graph->isDirected()) {
             pos = data.find("Root");
             data.erase(0, pos + sizeof("Root"));
             root = stoul(data);
             graph->setRoot(root - 1);
         }
-        catch (exception excep) {
-            throw excepMsg;
-        }
-    }
-    try {
         while ((pos = data.find(lineStart)) != data.npos) {
             data.erase(0, pos + lineStart.length());
             terminal = stoul(data, &pos);
@@ -98,7 +93,7 @@ void GraphParser::proceedTerminalSection(unique_ptr<Graph>& graph, string& data)
         }
     }
     catch (exception excep) {
-        throw excepMsg;
+        throw runtime_error("Wrong format of terminals section");
     }
 }
 
@@ -107,7 +102,7 @@ unique_ptr<Graph> GraphParser::parseFile(const wstring& filePath) {
     string data;
     size_t  fileSize;
     if (!file.good()) {
-        throw "Unable to open file";
+        throw runtime_error("Unable to open file");
     }
     file.seekg(0, ios_base::end);
     fileSize = (size_t)file.tellg();

@@ -37,7 +37,7 @@ private:
 public:
     /**
      * @brief Graph constructor, needs information about size (number of nodes) and if it directed or not
-     * @throw const char* type in case of the heap memory lack
+     * @throw std::runtime_error type in case of the heap memory lack
      * @param size
      * @param directed
     */
@@ -80,7 +80,7 @@ public:
     void print(std::ostream& outStream = std::cout) const;
     /**
      * @brief Method that creates the solution of the STP based on the Shortest Path Tree
-     * @throw const char* type in case of the heap memory lack
+     * @throw std::runtime_error type in case of the heap memory lack
      * @details Builds SPT using Dijkstra's algorithm :
      * 1) Choose any terminal (or root in case of directed STP)
      * 2) Find out, which terminal is the closest to the current terminal

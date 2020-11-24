@@ -29,25 +29,22 @@ int main(int argc, char* argv[]) {
                 proceedFile(path, cout);
             }
             catch (exception excep) {
-                cout << "Unable to open file " << argv[1] << endl << excep.what() << endl;
-            }
-            catch (const char* msg) {
-                cout << msg << endl;
+                cout << excep.what() << endl;
             }
         }
     }
     else {
         filesystem::directory_iterator dir("./");
         for (auto& file : dir) {
-            if (file.path().extension() != ".stp") {
-                continue;
-            }
             try {
+                if (file.path().extension() != ".stp") {
+                    continue;
+                }
                 proceedFile(file.path(), cout);
             }
-            catch (const char* msg) {
-                std::cout << msg << endl;
-            };
+            catch (exception excep) {
+                cout << excep.what() << endl;
+            }
         }
     }
     return 0;

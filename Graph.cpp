@@ -3,13 +3,14 @@
 #include <queue>
 #include <functional>
 #include <algorithm>
+#include <stdexcept>
 
 using namespace std;
 
 Graph::Graph(uint size, bool directed) {
     _graph.resize(size);
     if (_graph.size() != size) {
-        throw "Not enough heap memory";
+        throw runtime_error("Not enough heap memory");
     }
     _directed = directed;
 }
