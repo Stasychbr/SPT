@@ -10,13 +10,13 @@ void proceedFile(const filesystem::path& path, ostream& out) {
     out << "Proceeding the " << path.filename() << " file" << endl;
     clock_t time = clock();
     unique_ptr<Graph> graph(GraphParser::parseFile(path.generic_wstring()));
-    out << "reading time: " << (double)(clock() - time) / CLOCKS_PER_SEC << " s." << endl;
+    out << "reading time: " << (float)(clock() - time) / CLOCKS_PER_SEC << " s." << endl;
     out << "Full graph len: " << graph->getLenght() << endl;
     time = clock();
     shared_ptr<const Graph> spt = graph->buildSPT();
     time = clock() - time;
     out << "Opt: " << spt->getLenght() << endl;
-    out << "computing time: " << (double)time / CLOCKS_PER_SEC << " s." << endl;
+    out << "computing time: " << (float)time / CLOCKS_PER_SEC << " s." << endl;
     out << "------------------" << endl;
 }
 

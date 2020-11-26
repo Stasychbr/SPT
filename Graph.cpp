@@ -91,10 +91,9 @@ list<uint>::iterator Graph::findMinDist(list<uint>& leftToInsert, vector<uint>& 
 }
 
 
-void Graph::addEdgesToSPT(uint nextRoot, vector<pair<uint, uint>>& path, set<pair<uint, uint>>& addedEdges) {
-    uint prevRoot = _spt->_terminals.back();
+void Graph::addEdgesToSPT(uint curRoot, uint nextRoot, vector<pair<uint, uint>>& path, set<pair<uint, uint>>& addedEdges) {
     uint curVert = nextRoot;
-    while (curVert != prevRoot) {
+    while (curVert != curRoot) {
         if (addedEdges.find(make_pair(path[curVert].first, curVert)) == addedEdges.end()) {
             _spt->setEdge(path[curVert].first, curVert, path[curVert].second);
             addedEdges.emplace(make_pair(path[curVert].first, curVert));
@@ -106,52 +105,44 @@ void Graph::addEdgesToSPT(uint nextRoot, vector<pair<uint, uint>>& path, set<pai
     }
 }
 
-list<uint>::iterator Graph::prepareDirGraph(std::list<uint>& leftToInsert, bool& fFakeTerm) {
-    list<uint>::iterator root;
-    _spt->setRoot(_root);
-    root = find(leftToInsert.begin(), leftToInsert.end(), _root);
-    if (root == leftToInsert.end()) {
-        leftToInsert.push_front(_root);
-        _spt->setTerminal(_root);
-        root = leftToInsert.begin();
-        fFakeTerm = true;
-    }
-    else {
-        _spt->setTerminal(*root);
-    }
-    return root;
-}
-
 shared_ptr<const Graph> Graph::buildSPT() {
     vector<pair<uint, uint>> path(_graph.size());
     vector<uint> distances(_graph.size());
-    list<uint> leftToInsert(_terminals);
+    list<uint> leftToInsert = _terminals;;
     set<pair<uint, uint>> addedEdges;
     _spt = make_shared<Graph>(_graph.size(), _directed);
-    list<uint>::iterator root; 
-    bool fakeTerminal = false;
+    list<uint>::iterator nextRoot; 
+    uint curRoot;
     if (_directed) {
-        root = prepareDirGraph(leftToInsert, fakeTerminal);
+        curRoot = _root;
+        list<uint>::iterator isTerm = find(leftToInsert.begin(), leftToInsert.end(), _root);
+        if (isTerm != leftToInsert.end()) {
+            leftToInsert.erase(isTerm);
+            _spt->setTerminal(_root);
+        }
     }
     else {
-        root = leftToInsert.begin();
-        _spt->setTerminal(*root);
+        curRoot = leftToInsert.front();
+        leftToInsert.pop_front();
+        _spt->setTerminal(curRoot);
     }
-    while (_spt->_terminals.size() != _terminals.size()) {
-        for (uint& dist: distances) {
-            dist = UINT_MAX;
+    while (!leftToInsert.empty()) {
+        fill(distances.begin(), distances.end(), UINT_MAX);
+        dijkstra(curRoot, path, distances);
+        nextRoot = findMinDist(leftToInsert, distances);
+        if (nextRoot == leftToInsert.end()) {
+            if (_directed && curRoot != _root) {
+                curRoot = _root;
+                continue;
+            }
+            else {
+                break;
+            }
         }
-        dijkstra(*root, path, distances);
-        leftToInsert.erase(root);
-        root = findMinDist(leftToInsert, distances);
-        if (root == leftToInsert.end()) {
-            break;
-        }
-        addEdgesToSPT(*root, path, addedEdges);
-        _spt->setTerminal(*root);
-    }
-    if (fakeTerminal) {
-        _spt->_terminals.pop_front();
+        addEdgesToSPT(curRoot, *nextRoot, path, addedEdges);
+        _spt->setTerminal(*nextRoot);
+        curRoot = *nextRoot;
+        leftToInsert.erase(nextRoot);
     }
     return _spt;
 }

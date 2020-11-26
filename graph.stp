@@ -7,7 +7,7 @@ Remark  "Example used to describe the STP data format"
 END
 
 SECTION Graph
-Nodes 8
+Nodes 9
 Edges 
 A 8 4 1
 A 7 4 1
@@ -17,12 +17,13 @@ A 4 5 1
 A 2 4 1
 A 2 3 1
 A 1 2 1
+A 9 1 1
 
 END
 
 SECTION Terminals
-Terminals 3
-Root 8
+Terminals 4
+Root 9
 T 1
 T 3
 T 4

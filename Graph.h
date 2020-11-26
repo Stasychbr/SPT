@@ -31,9 +31,7 @@ private:
     /// Method that finds the closest terminal and returns his iterator, used in @ref Graph::buildSPT
     std::list<uint>::iterator findMinDist(std::list<uint>& leftToInsert, std::vector<uint>& distances);
     /// Method that adds edges to the closest terminal in the SPT (which are not there yet), used in @ref Graph::buildSPT
-    void addEdgesToSPT(uint nextRoot, std::vector<std::pair<uint, uint>>& path, std::set<std::pair<uint, uint>>& addedEdges);
-    /// Method that prepares directed graph for the solution (the problem is that the root node may be not terminal)
-    std::list<uint>::iterator prepareDirGraph(std::list<uint>& leftToInsert, bool& fFakeTerm);
+    void addEdgesToSPT(uint curRoot, uint nextRoot, std::vector<std::pair<uint, uint>>& path, std::set<std::pair<uint, uint>>& addedEdges);
 public:
     /**
      * @brief Graph constructor, needs information about size (number of nodes) and if it directed or not
